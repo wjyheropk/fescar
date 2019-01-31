@@ -24,8 +24,26 @@ import com.alibaba.fescar.rm.datasource.StatementProxy;
 import com.alibaba.fescar.rm.datasource.sql.SQLRecognizer;
 import com.alibaba.fescar.rm.datasource.sql.struct.TableRecords;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * The type Abstract dml base executor.
+ *
+ * @param <T> the type parameter
+ * @param <S> the type parameter
+ */
 public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends BaseTransactionalExecutor<T, S> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDMLBaseExecutor.class);
+
+    /**
+     * Instantiates a new Abstract dml base executor.
+     *
+     * @param statementProxy    the statement proxy
+     * @param statementCallback the statement callback
+     * @param sqlRecognizer     the sql recognizer
+     */
     public AbstractDMLBaseExecutor(StatementProxy<S> statementProxy, StatementCallback<T, S> statementCallback, SQLRecognizer sqlRecognizer) {
         super(statementProxy, statementCallback, sqlRecognizer);
     }
@@ -40,6 +58,13 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         }
     }
 
+    /**
+     * Execute auto commit false t.
+     *
+     * @param args the args
+     * @return the t
+     * @throws Throwable the throwable
+     */
     protected T executeAutoCommitFalse(Object[] args) throws Throwable {
         TableRecords beforeImage = beforeImage();
         T result = statementCallback.execute(statementProxy.getTargetStatement(), args);
@@ -48,6 +73,13 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         return result;
     }
 
+    /**
+     * Execute auto commit true t.
+     *
+     * @param args the args
+     * @return the t
+     * @throws Throwable the throwable
+     */
     protected T executeAutoCommitTrue(Object[] args) throws Throwable {
         T result = null;
         AbstractConnectionProxy connectionProxy = statementProxy.getConnectionProxy();
@@ -64,15 +96,31 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
                 }
             }
 
+        } catch (Exception e) {
+            // when exception occur in finally,this exception will lost, so just print it here
+            LOGGER.error("exception occur", e);
+            throw e;
         } finally {
             connectionProxy.setAutoCommit(true);
-
         }
         return result;
     }
 
+    /**
+     * Before image table records.
+     *
+     * @return the table records
+     * @throws SQLException the sql exception
+     */
     protected abstract TableRecords beforeImage() throws SQLException;
 
+    /**
+     * After image table records.
+     *
+     * @param beforeImage the before image
+     * @return the table records
+     * @throws SQLException the sql exception
+     */
     protected abstract TableRecords afterImage(TableRecords beforeImage) throws SQLException;
 
 }
